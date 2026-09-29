@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>背单词小程序</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding-top: 40px; }
+        .word-card { background: #fff; padding: 30px 50px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; width: 500px; }
+        .word { font-size: 40px; font-weight: bold; color: #0d6efd; margin-bottom: 15px; }
+        .meaning { font-size: 20px; color: #6c757d; margin-bottom: 25px; min-height: 30px; }
+        .btn-group button { font-size: 18px; padding: 10px 30px; margin: 0 10px; border: none; border-radius: 8px; cursor: pointer; color: #fff; }
+        #btn-know { background: #198754; }
+        #btn-unknown { background: #dc3545; }
+        .stats { margin-top: 30px; display: flex; gap: 30px; font-size: 16px; color: #495057; }
+        .stats span { font-weight: bold; color: #0d6efd; font-size: 20px; }
+        #chart { width: 500px; height: 300px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="word-card">
+        <div class="word" id="word">加载中...</div>
+        <div class="meaning" id="meaning"></div>
+        <div class="btn-group">
+            <button id="btn-unknown" onclick="submitAnswer('unknown')">不认识</button>
+            <button id="btn-know" onclick="submitAnswer('know')">认识</button>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div>今日已背：<span id="today-count">0</span></div>
+        <div>已掌握：<span id="mastered">0</span> / <span id="total">0</span></div>
+    </div>
+
+    <div id="chart"></div>
+
+    <script>
+        let currentWord = null;
+
+        // 1. 获取一个随机单词
+        function fetchWord() {
+            fetch('/get_word')
+                .then(res => res.json())
+                .then(data => {
+                    currentWord = data;
+                    document.getElementById('word').innerText = data.word;
+                    document.getElementById('meaning').innerText = data.meaning;
+                    if (data.id === null) {
+                        document.getElementById('btn-know').disabled = true;
+                        document.getElementById('btn-unknown').disabled = true;
+                    }
+                });
+        }
+
+        // 2. 提交答案
+        function submitAnswer(action) {
+            if (!currentWord || currentWord.id === null) return;
+            fetch('/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: currentWord.id, action: action })
+            })
+            .then(res => res.json())
+            .then(() => {
+                fetchWord();
+                fetchStats();
+            });
+        }
+
+        // 3. 获取统计数据并画图
+        function fetchStats() {
+            fetch('/stats')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('today-count').innerText = data.today_count;
+                    document.getElementById('mastered').innerText = data.mastered;
+                    document.getElementById('total').innerText = data.total;
+
+                    var chart = echarts.init(document.getElementById('chart'));
+                    chart.setOption({
+                        title: { text: '学习进度', left: 'center' },
+                        series: [{
+                            type: 'pie',
+                            radius: '60%',
+                            data: [
+                                { value: data.mastered, name: '已掌握' },
+                                { value: data.total - data.mastered, name: '未掌握' }
+                            ]
+                        }]
+                    });
+                });
+        }
+
+        // 页面加载时自动执行
+        window.onload = function() {
+            fetchWord();
+            fetchStats();
+        };
+    </script>
+</body>
+</html>
