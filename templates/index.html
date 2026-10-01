@@ -2,100 +2,320 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#f4f7f6">
     <title>背单词小程序</title>
     <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding-top: 40px; }
-        .word-card { background: #fff; padding: 30px 50px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; width: 500px; }
-        .word { font-size: 40px; font-weight: bold; color: #0d6efd; margin-bottom: 15px; }
-        .meaning { font-size: 20px; color: #6c757d; margin-bottom: 25px; min-height: 30px; }
-        .btn-group button { font-size: 18px; padding: 10px 30px; margin: 0 10px; border: none; border-radius: 8px; cursor: pointer; color: #fff; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: Arial, sans-serif; background: #f4f7f6; display: flex; flex-direction: column;
+               align-items: center; padding: 18px 12px 40px; margin: 0; }
+        .wrap { width: 100%; max-width: 520px; }
+
+        .top-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .modes { display: flex; gap: 8px; }
+        .modes button { padding: 9px 16px; border: 1px solid #d0d7de; background: #fff; border-radius: 20px;
+                        font-size: 15px; cursor: pointer; color: #495057; }
+        .modes button.active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+        .setting { font-size: 14px; color: #495057; display: flex; align-items: center; gap: 6px; }
+        .setting input { width: 62px; padding: 6px 8px; font-size: 14px; border: 1px solid #d0d7de;
+                         border-radius: 6px; text-align: center; }
+
+        .word-card { background: #fff; padding: 24px 20px; border-radius: 12px;
+                     box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; }
+        .word { font-size: clamp(28px, 8vw, 40px); font-weight: bold; color: #0d6efd;
+                margin-bottom: 12px; word-break: break-word; }
+        .meaning { font-size: clamp(15px, 4.5vw, 19px); color: #6c757d; margin-bottom: 16px;
+                   min-height: 28px; word-break: break-word; }
+        .synonyms { display: none; background: #f1f6ff; color: #0d6efd; border-radius: 8px;
+                    padding: 10px 12px; font-size: 15px; margin-bottom: 16px; text-align: left;
+                    white-space: pre-line; line-height: 1.7; }
+
+        .progress { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+                    font-size: 14px; color: #6c757d; margin-bottom: 14px; }
+        .checks { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .check { font-size: 13px; padding: 6px 12px; border-radius: 16px; background: #eef1f4; color: #adb5bd; }
+        .check.on { background: #d1e7dd; color: #146c43; font-weight: bold; }
+        .check.skip { background: #fff3cd; color: #997404; }
+
+        .btn-group { display: flex; gap: 12px; }
+        .btn-group button { flex: 1; font-size: 17px; padding: 14px 10px; min-height: 52px; border: none;
+                            border-radius: 8px; cursor: pointer; color: #fff; }
         #btn-know { background: #198754; }
         #btn-unknown { background: #dc3545; }
-        .stats { margin-top: 30px; display: flex; gap: 30px; font-size: 16px; color: #495057; }
-        .stats span { font-weight: bold; color: #0d6efd; font-size: 20px; }
-        #chart { width: 500px; height: 300px; margin-top: 20px; }
+        #btn-associate { background: #6f42c1; width: 100%; margin-bottom: 12px; }
+        #btn-master { background: #ffc107; color: #212529; width: 100%; margin-top: 12px; display: none;
+                      font-weight: bold; }
+        .btn-group button:active { opacity: .75; }
+        .btn-group button:disabled { opacity: .45; }
+
+        .essay-box { display: none; margin-top: 6px; }
+        .sentence { background: #f8f9fa; border-left: 3px solid #0d6efd; padding: 12px 14px;
+                    border-radius: 6px; font-size: 15px; line-height: 1.7; color: #212529;
+                    text-align: left; margin-bottom: 12px; word-break: break-word; }
+        .sentence b { color: #dc3545; letter-spacing: 2px; }
+        .essay-box input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d0d7de;
+                           border-radius: 8px; margin-bottom: 10px; }
+        .essay-result { font-size: 14px; margin-top: 8px; color: #495057; min-height: 20px;
+                        white-space: pre-line; line-height: 1.6; }
+
+        .stats { margin-top: 22px; display: flex; flex-wrap: wrap; justify-content: center;
+                 gap: 10px 22px; font-size: 15px; color: #495057; }
+        .stats span { font-weight: bold; color: #0d6efd; font-size: 19px; }
+        #chart { width: 100%; height: 260px; margin-top: 16px; }
     </style>
 </head>
 <body>
-    <div class="word-card">
-        <div class="word" id="word">加载中...</div>
-        <div class="meaning" id="meaning"></div>
-        <div class="btn-group">
-            <button id="btn-unknown" onclick="submitAnswer('unknown')">不认识</button>
-            <button id="btn-know" onclick="submitAnswer('know')">认识</button>
+<div class="wrap">
+
+    <div class="top-bar">
+        <div class="modes">
+            <button id="mode-word" class="active" onclick="switchMode('word')">单词</button>
+            <button id="mode-phrase" onclick="switchMode('phrase')">词组</button>
+            <button id="mode-essay" onclick="switchMode('essay')">作文</button>
+        </div>
+        <div class="setting">
+            每日新词 <input type="number" id="daily-new" min="1" max="500" value="30"
+                          onchange="saveDailyNew()"> 个
         </div>
     </div>
 
+    <div class="word-card">
+        <div class="word" id="word">加载中...</div>
+        <div class="meaning" id="meaning"></div>
+        <div class="synonyms" id="synonyms"></div>
+
+        <div class="progress">
+            <div>今日新词：<b id="today-new">0</b> / <b id="daily-new-show">30</b></div>
+            <div>今日复习：<b id="today-review">0</b> / <b id="review-limit">60</b></div>
+        </div>
+
+        <div class="checks">
+            <div class="check" id="check-word">单词 <span id="score-word">0</span></div>
+            <div class="check" id="check-phrase"><span id="phrase-label">词组</span> <span id="score-phrase">0</span></div>
+            <div class="check" id="check-essay">作文</div>
+        </div>
+
+        <button id="btn-associate" onclick="showSynonyms()" style="display:none">联想同义词</button>
+
+        <div class="btn-group" id="know-group">
+            <button id="btn-unknown" onclick="submitAnswer('unknown')">不认识</button>
+            <button id="btn-know" onclick="submitAnswer('know')">认识</button>
+        </div>
+
+        <div class="essay-box" id="essay-box">
+            <div class="sentence" id="sentence"></div>
+            <input type="text" id="essay-input" placeholder="填入句中缺少的单词，回车提交" onkeydown="if(event.key==='Enter')checkEssay()">
+            <div class="btn-group">
+                <button id="btn-essay" style="background:#0d6efd" onclick="checkEssay()">提交拼写</button>
+            </div>
+            <div class="essay-result" id="essay-result"></div>
+        </div>
+
+        <button id="btn-master" onclick="masterWord()">⭐ 一键熟词（三个模块已达标）</button>
+    </div>
+
     <div class="stats">
-        <div>今日已背：<span id="today-count">0</span></div>
+        <div>今日已练：<span id="today-count">0</span></div>
         <div>已掌握：<span id="mastered">0</span> / <span id="total">0</span></div>
     </div>
 
     <div id="chart"></div>
+</div>
 
-    <script>
-        let currentWord = null;
+<script>
+    let current = null;
+    let mode = 'word';
+    let associated = false;
 
-        // 1. 获取一个随机单词
-        function fetchWord() {
-            fetch('/get_word')
-                .then(res => res.json())
-                .then(data => {
-                    currentWord = data;
-                    document.getElementById('word').innerText = data.word;
-                    document.getElementById('meaning').innerText = data.meaning;
-                    if (data.id === null) {
-                        document.getElementById('btn-know').disabled = true;
-                        document.getElementById('btn-unknown').disabled = true;
-                    }
-                });
-        }
+    function dailyNew() {
+        let v = parseInt(localStorage.getItem('daily_new') || '30', 10);
+        if (!v || v < 1) v = 30;
+        return v;
+    }
 
-        // 2. 提交答案
-        function submitAnswer(action) {
-            if (!currentWord || currentWord.id === null) return;
-            fetch('/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: currentWord.id, action: action })
-            })
+    function saveDailyNew() {
+        let v = parseInt(document.getElementById('daily-new').value, 10);
+        if (!v || v < 1) v = 30;
+        localStorage.setItem('daily_new', v);
+        fetchItem();
+        fetchStats();
+    }
+
+    function switchMode(m) {
+        mode = m;
+        ['word', 'phrase', 'essay'].forEach(function (x) {
+            document.getElementById('mode-' + x).classList.toggle('active', x === m);
+        });
+        fetchItem();
+    }
+
+    function fetchItem() {
+        associated = false;
+        let dn = dailyNew();
+        document.getElementById('daily-new').value = dn;
+        document.getElementById('daily-new-show').innerText = dn;
+
+        fetch('/get_item?mode=' + mode + '&daily_new=' + dn)
             .then(res => res.json())
-            .then(() => {
-                fetchWord();
+            .then(data => {
+                current = data;
+                render(data);
                 fetchStats();
             });
+    }
+
+    function render(data) {
+        document.getElementById('word').innerText = data.word;
+        document.getElementById('meaning').innerText = data.meaning || '';
+        document.getElementById('score-word').innerText = data.word_score || 0;
+        document.getElementById('score-phrase').innerText = data.phrase_score || 0;
+
+        let done = data.id === null;
+
+        // 没有同义替换数据的词条：词组模块自动跳过
+        let hasSyn = !!(data.synonyms && String(data.synonyms).trim());
+        let phraseOk = hasSyn ? (data.phrase_done === 1) : true;
+
+        document.getElementById('check-word').classList.toggle('on', data.word_done === 1);
+        document.getElementById('check-essay').classList.toggle('on', data.essay_done === 1);
+
+        let cp = document.getElementById('check-phrase');
+        cp.classList.toggle('on', hasSyn && data.phrase_done === 1);
+        cp.classList.toggle('skip', !hasSyn);
+        document.getElementById('phrase-label').innerText = hasSyn ? '词组' : '词组(无同义词·跳过)';
+        document.getElementById('score-phrase').style.display = hasSyn ? 'inline' : 'none';
+
+        let allDone = data.word_done === 1 && data.essay_done === 1 && phraseOk;
+        document.getElementById('btn-master').style.display = (allDone && !done) ? 'block' : 'none';
+
+        // 模式相关的显隐
+        let isEssay = (mode === 'essay');
+        document.getElementById('essay-box').style.display = (isEssay && !done) ? 'block' : 'none';
+        document.getElementById('know-group').style.display = (isEssay || done) ? 'none' : 'flex';
+        document.getElementById('btn-associate').style.display = (mode === 'phrase' && !done) ? 'block' : 'none';
+
+        let syn = document.getElementById('synonyms');
+        syn.style.display = 'none';
+        syn.innerText = '';
+
+        if (isEssay) {
+            document.getElementById('essay-input').value = '';
+            document.getElementById('essay-result').innerText = '';
+            let sent = document.getElementById('sentence');
+            let blank = data.sentence_blank || '';
+            if (blank) {
+                sent.innerHTML = blank.replace(/________/g, '<b>________</b>');
+                sent.style.display = 'block';
+            } else {
+                sent.innerText = '（该词暂无例句，直接拼写单词即可）';
+                sent.style.display = 'block';
+            }
+        } else if (!done) {
+            // 词组模式：必须先点“联想”才能作答
+            let needAssociate = (mode === 'phrase' && !associated);
+            document.getElementById('btn-know').disabled = needAssociate;
+            document.getElementById('btn-unknown').disabled = needAssociate;
+            if (mode === 'word') {
+                document.getElementById('btn-know').disabled = false;
+                document.getElementById('btn-unknown').disabled = false;
+            }
         }
+    }
 
-        // 3. 获取统计数据并画图
-        function fetchStats() {
-            fetch('/stats')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('today-count').innerText = data.today_count;
-                    document.getElementById('mastered').innerText = data.mastered;
-                    document.getElementById('total').innerText = data.total;
+    function showSynonyms() {
+        associated = true;
+        let syn = document.getElementById('synonyms');
+        let parts = [];
+        if (current && current.synonyms) parts.push('同义替换：' + current.synonyms);
+        if (current && current.phrases) parts.push('写作搭配：' + current.phrases);
+        let text = parts.join('\n') || '（该词条暂无同义词/搭配，可在数据库 synonyms、phrases 字段补充）';
+        syn.innerText = text;
+        syn.style.display = 'block';
+        document.getElementById('btn-know').disabled = false;
+        document.getElementById('btn-unknown').disabled = false;
+    }
 
-                    var chart = echarts.init(document.getElementById('chart'));
-                    chart.setOption({
-                        title: { text: '学习进度', left: 'center' },
-                        series: [{
-                            type: 'pie',
-                            radius: '60%',
-                            data: [
-                                { value: data.mastered, name: '已掌握' },
-                                { value: data.total - data.mastered, name: '未掌握' }
-                            ]
-                        }]
-                    });
+    function submitAnswer(act) {
+        if (!current || current.id === null) return;
+        let action = mode + '_' + act;   // word_know / phrase_unknown ...
+        fetch('/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: current.id, action: action })
+        }).then(res => res.json())
+          .then(() => { fetchItem(); });
+    }
+
+    function checkEssay() {
+        if (!current || current.id === null) return;
+        let input = document.getElementById('essay-input').value;
+        fetch('/check_essay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: current.id, input: input })
+        }).then(res => res.json())
+          .then(data => {
+              let r = document.getElementById('essay-result');
+              if (data.passed) {
+                  r.innerText = '拼写正确！相似度 ' + data.similarity + '%'
+                                + (data.sentence ? '\n' + data.sentence : '');
+                  r.style.color = '#146c43';
+                  fetchItem();
+              } else {
+                  r.innerText = '相似度 ' + data.similarity + '%，未达 98%，再试一次';
+                  r.style.color = '#dc3545';
+              }
+              fetchStats();
+          });
+    }
+
+    function masterWord() {
+        if (!current || current.id === null) return;
+        fetch('/master', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: current.id })
+        }).then(res => res.json())
+          .then(data => {
+              if (data.status !== 'ok') alert(data.message || '操作失败');
+              fetchItem();
+              fetchStats();
+          });
+    }
+
+    function fetchStats() {
+        fetch('/stats?daily_new=' + dailyNew())
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('today-count').innerText = data.today_count;
+                document.getElementById('mastered').innerText = data.mastered;
+                document.getElementById('total').innerText = data.total;
+                document.getElementById('today-new').innerText = data.today_new;
+                document.getElementById('daily-new-show').innerText = data.daily_new;
+                document.getElementById('today-review').innerText = data.today_review;
+                document.getElementById('review-limit').innerText = data.review_limit;
+
+                var chart = echarts.init(document.getElementById('chart'));
+                chart.setOption({
+                    title: { text: '学习进度', left: 'center' },
+                    series: [{
+                        type: 'pie',
+                        radius: '60%',
+                        data: [
+                            { value: data.mastered, name: '已熟词' },
+                            { value: data.total - data.mastered, name: '未熟词' }
+                        ]
+                    }]
                 });
-        }
+            });
+    }
 
-        // 页面加载时自动执行
-        window.onload = function() {
-            fetchWord();
-            fetchStats();
-        };
-    </script>
+    window.onload = function () {
+        document.getElementById('daily-new').value = dailyNew();
+        fetchItem();
+    };
+</script>
 </body>
 </html>

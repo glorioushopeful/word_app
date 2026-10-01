@@ -1,0 +1,25 @@
+# 虚拟环境与 IDE
+.venv/
+.idea/
+.codebuddy/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# OCR 缓存与语料缓存
+.ocr_cache/
+.corpus_cache.json
+
+# 数据库文件
+words.db
+words.db.bak
+
+# 大文件：PDF / 可执行文件
+*.pdf
+*.exe
+
+# 日志与临时输出
+*.log
+ocr_log.txt
+_tunnel_out.txt
