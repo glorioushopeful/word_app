@@ -23,3 +23,9 @@ words.db.bak
 *.log
 ocr_log.txt
 _tunnel_out.txt
+
+# 运行时生成的二维码
+手机扫码.png
+
+# 临时脚本
+_scan_tmp.ps1

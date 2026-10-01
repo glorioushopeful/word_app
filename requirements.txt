@@ -1,2 +1,17 @@
+# 核心 Web 应用
 Flask
 gunicorn==21.2.0
+
+# PDF / Word 词库提取（extract_pdf.py / extract_writing.py）
+pypdf
+python-docx
+
+# Excel 导出（convert_to_csv.py）
+openpyxl
+
+# 局域网二维码生成（tunnel.py / start_tailscale.py 生成 手机扫码.png）
+qrcode
+
+# OCR 提取（ocr_extract.py）
+PyMuPDF
+rapidocr_onnxruntime
